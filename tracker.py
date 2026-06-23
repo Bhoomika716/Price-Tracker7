@@ -8,6 +8,8 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 URL = "https://www.flipkart.com/prestige-1600-w-induction-cooktop-push-button/p/itm15d69f3360370"
 
+TARGET_PRICE = 2200
+
 
 def send_message(msg):
     requests.post(
@@ -19,37 +21,92 @@ def send_message(msg):
     )
 
 
-with sync_playwright() as p:
+def get_price():
 
-    browser = p.chromium.launch(headless=True)
+    with sync_playwright() as p:
 
-    page = browser.new_page()
-
-    try:
-        page.goto(
-            URL,
-            wait_until="commit",
-            timeout=10000
+        browser = p.chromium.launch(
+            headless=True
         )
-    except:
-        pass
 
-    page.wait_for_timeout(8000)
+        page = browser.new_page()
 
-    html = page.content()
+        try:
+            page.goto(
+                URL,
+                wait_until="commit",
+                timeout=10000
+            )
+        except Exception:
+            pass
 
-    browser.close()
+        page.wait_for_timeout(8000)
 
-prices = re.findall(r'₹\s?([0-9,]+)', html)
+        html = page.content()
 
-values = []
+        browser.close()
 
-for p in prices:
-    try:
-        values.append(int(p.replace(",", "")))
-    except:
-        pass
+        prices = re.findall(r'₹\s?([0-9,]+)', html)
 
-send_message(
-    f"ALL DETECTED PRICES:\n\n{values[:100]}"
-)
+        values = []
+
+        for p in prices:
+            try:
+                values.append(
+                    int(p.replace(",", ""))
+                )
+            except Exception:
+                pass
+
+        print("ALL DETECTED:", values)
+
+        filtered = [
+            p for p in values
+            if 2500 <= p <= 3500
+        ]
+
+        print("FILTERED:", filtered)
+
+        if filtered:
+            return filtered[0]
+
+        return None
+
+
+price = get_price()
+
+if price is None:
+
+    send_message(
+        "⚠ Could not detect product price."
+    )
+
+elif price <= TARGET_PRICE:
+
+    send_message(
+        f"""🔥 PRICE ALERT
+
+Prestige PIC 20 NEO
+
+Current Price: ₹{price}
+
+Target Price: ₹{TARGET_PRICE}
+
+{URL}
+"""
+    )
+
+else:
+
+    send_message(
+        f"""ℹ Price Check
+
+Prestige PIC 20 NEO
+
+Current Price: ₹{price}
+
+Target Price: ₹{TARGET_PRICE}
+
+Price is still above target.
+"""
+    )
