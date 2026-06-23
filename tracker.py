@@ -55,27 +55,40 @@ page.wait_for_timeout(5000)
         return None
 
 
-price = get_price()
+def get_price():
+    with sync_playwright() as p:
 
-print("Detected Price:", price)
+        browser = p.chromium.launch(
+            headless=True
+        )
 
-if price is None:
+        page = browser.new_page()
 
-    send_message(
-        "⚠ Could not detect Flipkart price."
-    )
+        page.goto(
+            URL,
+            wait_until="domcontentloaded",
+            timeout=30000
+        )
 
-elif price <= TARGET_PRICE:
+        page.wait_for_timeout(5000)
 
-    send_message(
-        f"""🔥 PRICE ALERT
+        html = page.content()
 
-Prestige PIC 20 NEO
+        browser.close()
 
-Current Price: ₹{price}
+        import re
 
-Target Price: ₹{TARGET_PRICE}
+        prices = re.findall(r'₹\s?([0-9,]+)', html)
 
-{URL}
-"""
-    )
+        if prices:
+
+            values = [
+                int(x.replace(",", ""))
+                for x in prices
+            ]
+
+            print("Detected prices:", values)
+
+            return min(values)
+
+        return None
