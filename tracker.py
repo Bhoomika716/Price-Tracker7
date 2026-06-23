@@ -29,12 +29,16 @@ def get_price():
         )
 
         page = browser.new_page()
+        try:
+    page.goto(
+        URL,
+        wait_until="commit",
+        timeout=10000
+    )
+except:
+    pass
 
-        page.goto(
-            URL,
-            wait_until="domcontentloaded",
-            timeout=30000
-        )
+page.wait_for_timeout(8000)
 
         page.wait_for_timeout(5000)
 
