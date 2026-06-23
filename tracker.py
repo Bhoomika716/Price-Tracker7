@@ -30,40 +30,6 @@ def get_price():
 
         page = browser.new_page()
 
-       page.goto(
-    URL,
-    wait_until="domcontentloaded",
-    timeout=30000
-)
-
-page.wait_for_timeout(5000)
-
-        text = page.content()
-
-        browser.close()
-
-        matches = re.findall(r'₹\s?([0-9,]+)', text)
-
-        if matches:
-            prices = [
-                int(x.replace(",", ""))
-                for x in matches
-            ]
-
-            return min(prices)
-
-        return None
-
-
-def get_price():
-    with sync_playwright() as p:
-
-        browser = p.chromium.launch(
-            headless=True
-        )
-
-        page = browser.new_page()
-
         page.goto(
             URL,
             wait_until="domcontentloaded",
@@ -75,8 +41,6 @@ def get_price():
         html = page.content()
 
         browser.close()
-
-        import re
 
         prices = re.findall(r'₹\s?([0-9,]+)', html)
 
@@ -92,3 +56,29 @@ def get_price():
             return min(values)
 
         return None
+
+
+price = get_price()
+
+print("Detected Price:", price)
+
+if price is None:
+
+    send_message(
+        "⚠ Unable to detect Flipkart price."
+    )
+
+elif price <= TARGET_PRICE:
+
+    send_message(
+        f"""🔥 PRICE ALERT
+
+Prestige PIC 20 NEO
+
+Current Price: ₹{price}
+
+Target Price: ₹{TARGET_PRICE}
+
+{URL}
+"""
+    )
