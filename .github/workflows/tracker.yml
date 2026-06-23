@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -18,8 +18,13 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Packages
-        run: pip install -r requirements.txt
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Install Playwright Browser
+        run: |
+          playwright install chromium
 
       - name: Run Tracker
         run: python tracker.py
