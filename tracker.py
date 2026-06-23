@@ -44,23 +44,34 @@ def get_price():
 
         prices = re.findall(r'₹\s?([0-9,]+)', html)
 
-        if prices:
+        if not prices:
+            return None
 
-            values = [
-                int(x.replace(",", ""))
-                for x in prices
-            ]
+        values = [
+            int(x.replace(",", ""))
+            for x in prices
+        ]
 
-            print("Detected prices:", values)
+        print("ALL DETECTED PRICES:", values)
 
-            return min(values)
+        # Ignore unrealistic values
+        filtered = [
+            p for p in values
+            if 500 <= p <= 100000
+        ]
 
-        return None
+        print("FILTERED PRICES:", filtered)
+
+        if not filtered:
+            return None
+
+        # Most likely product price
+        return min(filtered)
 
 
 price = get_price()
 
-print("Detected Price:", price)
+print("FINAL PRICE:", price)
 
 if price is None:
 
@@ -80,5 +91,20 @@ Current Price: ₹{price}
 Target Price: ₹{TARGET_PRICE}
 
 {URL}
+"""
+    )
+
+else:
+
+    send_message(
+        f"""ℹ Price Check
+
+Prestige PIC 20 NEO
+
+Current Price: ₹{price}
+
+Target Price: ₹{TARGET_PRICE}
+
+No alert needed yet.
 """
     )
