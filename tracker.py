@@ -1,106 +1,79 @@
 import os
+import re
 import requests
-from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
-# Telegram Config
 TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-# Product Config
-PRODUCT_NAME = "Prestige PIC 20 NEO"
+URL = "https://www.flipkart.com/prestige-1600-w-induction-cooktop-push-button/p/itm15d69f3360370"
+
 TARGET_PRICE = 2200
 
-URL = "https://dl.flipkart.com/dl/prestige-1600-w-induction-cooktop-push-button/p/itm15d69f3360370"
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36"
-}
-
-
-def send_telegram(message):
+def send_message(msg):
     requests.post(
         f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
         data={
             "chat_id": CHAT_ID,
-            "text": message
+            "text": msg
         }
     )
 
 
 def get_price():
-    try:
-        response = requests.get(
+    with sync_playwright() as p:
+
+        browser = p.chromium.launch(
+            headless=True
+        )
+
+        page = browser.new_page()
+
+        page.goto(
             URL,
-            headers=HEADERS,
-            timeout=30
+            wait_until="networkidle",
+            timeout=60000
         )
 
-        print("Status Code:", response.status_code)
+        text = page.content()
 
-        soup = BeautifulSoup(
-            response.text,
-            "html.parser"
-        )
+        browser.close()
 
-        selectors = [
-            "div.Nx9bqj",
-            "div._30jeq3",
-            "div.CEmiEU"
-        ]
+        matches = re.findall(r'₹\s?([0-9,]+)', text)
 
-        for selector in selectors:
+        if matches:
+            prices = [
+                int(x.replace(",", ""))
+                for x in matches
+            ]
 
-            tag = soup.select_one(selector)
-
-            if tag:
-
-                price_text = tag.get_text(strip=True)
-
-                print("Price Text:", price_text)
-
-                digits = "".join(
-                    c for c in price_text
-                    if c.isdigit()
-                )
-
-                if digits:
-                    return int(digits)
+            return min(prices)
 
         return None
 
-    except Exception as e:
-        print("ERROR:", e)
-        return None
 
+price = get_price()
 
-current_price = get_price()
+print("Detected Price:", price)
 
-print("Current Price =", current_price)
+if price is None:
 
-if current_price is None:
-
-    send_telegram(
-        "⚠️ Unable to fetch Flipkart price.\nCheck GitHub Action logs."
+    send_message(
+        "⚠ Could not detect Flipkart price."
     )
 
-elif current_price <= TARGET_PRICE:
+elif price <= TARGET_PRICE:
 
-    send_telegram(
+    send_message(
         f"""🔥 PRICE ALERT
 
-{PRODUCT_NAME}
+Prestige PIC 20 NEO
 
-Current Price: ₹{current_price}
+Current Price: ₹{price}
 
 Target Price: ₹{TARGET_PRICE}
 
-Buy Now:
 {URL}
 """
-    )
-
-else:
-
-    print(
-        f"Price {current_price} is above target {TARGET_PRICE}"
     )
