@@ -1,5 +1,4 @@
 import os
-import re
 import requests
 from playwright.sync_api import sync_playwright
 
@@ -7,8 +6,6 @@ TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 URL = "https://www.flipkart.com/prestige-1600-w-induction-cooktop-push-button/p/itm15d69f3360370"
-
-TARGET_PRICE = 2200
 
 
 def send_message(msg):
@@ -24,87 +21,32 @@ def send_message(msg):
 def get_price():
     with sync_playwright() as p:
 
-        browser = p.chromium.launch(
-            headless=True
-        )
+        browser = p.chromium.launch(headless=True)
 
         page = browser.new_page()
+
         try:
             page.goto(
                 URL,
                 wait_until="commit",
                 timeout=10000
             )
-            except:
-                pass
-                page.wait_for_timeout(8000)
-                html = page.content()
+        except Exception:
+            pass
+
+        page.wait_for_timeout(8000)
+
+        html = page.content()
 
         browser.close()
 
-        prices = re.findall(r'₹\s?([0-9,]+)', html)
+        print("Page length:", len(html))
 
-        if not prices:
-            return None
-
-        values = [
-            int(x.replace(",", ""))
-            for x in prices
-        ]
-
-        print("ALL DETECTED PRICES:", values)
-
-        # Ignore unrealistic values
-        filtered = [
-            p for p in values
-            if 500 <= p <= 100000
-        ]
-
-        print("FILTERED PRICES:", filtered)
-
-        if not filtered:
-            return None
-
-        # Most likely product price
-        return min(filtered)
+        return html
 
 
-price = get_price()
+html = get_price()
 
-print("FINAL PRICE:", price)
-
-if price is None:
-
-    send_message(
-        "⚠ Unable to detect Flipkart price."
-    )
-
-elif price <= TARGET_PRICE:
-
-    send_message(
-        f"""🔥 PRICE ALERT
-
-Prestige PIC 20 NEO
-
-Current Price: ₹{price}
-
-Target Price: ₹{TARGET_PRICE}
-
-{URL}
-"""
-    )
-
-else:
-
-    send_message(
-        f"""ℹ Price Check
-
-Prestige PIC 20 NEO
-
-Current Price: ₹{price}
-
-Target Price: ₹{TARGET_PRICE}
-
-No alert needed yet.
-"""
-    )
+send_message(
+    f"✅ Tracker Running\n\nPage Size: {len(html)} characters"
+)
