@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from playwright.sync_api import sync_playwright
 
@@ -18,35 +19,37 @@ def send_message(msg):
     )
 
 
-def get_price():
-    with sync_playwright() as p:
+with sync_playwright() as p:
 
-        browser = p.chromium.launch(headless=True)
+    browser = p.chromium.launch(headless=True)
 
-        page = browser.new_page()
+    page = browser.new_page()
 
-        try:
-            page.goto(
-                URL,
-                wait_until="commit",
-                timeout=10000
-            )
-        except Exception:
-            pass
+    try:
+        page.goto(
+            URL,
+            wait_until="commit",
+            timeout=10000
+        )
+    except:
+        pass
 
-        page.wait_for_timeout(8000)
+    page.wait_for_timeout(8000)
 
-        html = page.content()
+    html = page.content()
 
-        browser.close()
+    browser.close()
 
-        print("Page length:", len(html))
+prices = re.findall(r'₹\s?([0-9,]+)', html)
 
-        return html
+values = []
 
-
-html = get_price()
+for p in prices:
+    try:
+        values.append(int(p.replace(",", "")))
+    except:
+        pass
 
 send_message(
-    f"✅ Tracker Running\n\nPage Size: {len(html)} characters"
+    f"ALL DETECTED PRICES:\n\n{values[:100]}"
 )
